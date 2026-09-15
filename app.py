@@ -65,6 +65,16 @@ def add_application():
 
     return redirect(url_for("home"))
 
+@app.post("/applications/<int:application_id>/delete")
+def delete_application(application_id):
+    with get_database_connection() as connection:
+        connection.execute(
+            "DELETE FROM applications WHERE id = ?",
+            (application_id,),
+        )
+
+    return redirect(url_for("home"))
+
 
 if __name__ == "__main__":
     initialize_database()
