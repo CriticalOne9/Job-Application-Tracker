@@ -1,11 +1,156 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Application Tracker</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #1f2937;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    h1 { margin: 0; font-size: 32px; }
+    h2 { margin-top: 0; }
+    .subtitle { color: #6b7280; margin-top: 8px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin: 30px 0;
+    }
+
+    .card, .panel {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    .number { font-size: 32px; font-weight: bold; color: #2563eb; }
+    .label { color: #6b7280; margin-top: 6px; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 160px auto;
+      gap: 12px;
+    }
+
+    input, select, button {
+      border-radius: 8px;
+      padding: 12px;
+      font-size: 14px;
+    }
+
+    input, select {
+      border: 1px solid #d1d5db;
+      background: white;
+    }
+
+    button {
+      border: 0;
+      background: #2563eb;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 8px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+    th { color: #6b7280; font-size: 13px; }
+
+    .status {
+      display: inline-block;
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: #dbeafe;
+      color: #1d4ed8;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .empty { color: #6b7280; text-align: center; padding: 30px 0; }
+
+    @media (max-width: 700px) {
+      .stats, .form-grid { grid-template-columns: 1fr; }
+      .container { padding: 28px 16px; }
+    }
+  </style>
 </head>
 <body>
-  <h1>Job Application Tracker</h1>
-  <p>Keep your job search organized in one place.</p>
-  <button>Add application</button>
+  <main class="container">
+    <h1>Job Application Tracker</h1>
+    <p class="subtitle">Stay organized and follow every opportunity.</p>
+
+    <section class="stats">
+      <div class="card">
+        <div class="number">{{ total }}</div>
+        <div class="label">Total applications</div>
+      </div>
+      <div class="card">
+        <div class="number">{{ interviews }}</div>
+        <div class="label">Interviews</div>
+      </div>
+      <div class="card">
+        <div class="number">{{ offers }}</div>
+        <div class="label">Offers</div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2>Add an application</h2>
+      <form class="form-grid" action="{{ url_for('add_application') }}" method="POST">
+        <input name="company" placeholder="Company name" required>
+        <input name="role" placeholder="Job title" required>
+        <select name="status">
+          <option>Applied</option>
+          <option>Interview</option>
+          <option>Offer</option>
+          <option>Rejected</option>
+        </select>
+        <button type="submit">Add</button>
+      </form>
+    </section>
+
+    <section class="panel" style="margin-top: 28px;">
+      <h2>Recent applications</h2>
+
+      {% if applications %}
+      <table>
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Date added</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for application in applications %}
+          <tr>
+            <td>{{ application["company"] }}</td>
+            <td>{{ application["role"] }}</td>
+            <td><span class="status">{{ application["status"] }}</span></td>
+            <td>{{ application["date_applied"] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">No applications yet. Add your first one above.</p>
+      {% endif %}
+    </section>
+  </main>
 </body>
 </html>
