@@ -6,6 +6,7 @@ from flask import Flask, redirect, render_template, request, url_for
 app = Flask(__name__)
 
 DATABASE = "applications.db"
+ALLOWED_STATUSES = ("Applied", "Interview", "Offer", "Rejected")
 
 
 def get_database_connection():
@@ -62,6 +63,19 @@ def add_application():
             """,
             (company, role, status, date.today().isoformat()),
         )
+
+    return redirect(url_for("home"))
+
+@app.post("/applications/<int:application_id>/status")
+def update_status(application_id):
+    status = request.form["status"]
+
+    if status in ALLOWED_STATUSES:
+        with get_database_connection() as connection:
+            connection.execute(
+                "UPDATE applications SET status = ? WHERE id = ?",
+                (status, application_id),
+            )
 
     return redirect(url_for("home"))
 
