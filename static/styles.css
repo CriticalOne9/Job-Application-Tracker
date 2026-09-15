@@ -172,19 +172,19 @@ td {
   font-weight: 700;
 }
 
-td form {
+.row-action-form {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-td form select,
-td form button {
+.row-action-form select,
+.row-action-form button {
   min-height: 36px;
   font-size: 0.84rem;
 }
 
-td form button {
+.row-action-form button {
   padding: 0 11px;
 }
 

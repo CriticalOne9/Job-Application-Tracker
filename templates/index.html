@@ -26,7 +26,23 @@
       </div>
     </section>
 
-    <section class="panel" style="margin-bottom: 24px;">
+    
+    <section class="panel">
+      <h2>Add an application</h2>
+      <form class="form-grid" action="{{ url_for('add_application') }}" method="POST">
+        <input name="company" placeholder="Company name" required>
+        <input name="role" placeholder="Job title" required>
+        <select name="status">
+          <option>Applied</option>
+          <option>Interview</option>
+          <option>Offer</option>
+          <option>Rejected</option>
+        </select>
+        <button type="submit">Add</button>
+      </form>
+    </section>
+
+    <section class="panel" style="margin-top: 24px; margin-bottom: 24px;">
   <h2>Find applications</h2>
   <form class="form-grid" action="{{ url_for('home') }}" method="GET">
     <input
@@ -48,20 +64,6 @@
     <button type="submit">Filter</button>
   </form>
 </section>
-    <section class="panel">
-      <h2>Add an application</h2>
-      <form class="form-grid" action="{{ url_for('add_application') }}" method="POST">
-        <input name="company" placeholder="Company name" required>
-        <input name="role" placeholder="Job title" required>
-        <select name="status">
-          <option>Applied</option>
-          <option>Interview</option>
-          <option>Offer</option>
-          <option>Rejected</option>
-        </select>
-        <button type="submit">Add</button>
-      </form>
-    </section>
 
     <section class="panel" style="margin-top: 28px;">
       <h2>Recent applications</h2>
@@ -83,7 +85,7 @@
             <td>{{ application["company"] }}</td>
             <td>{{ application["role"] }}</td>
             <td>
-  <form action="{{ url_for('update_status', application_id=application['id']) }}" method="POST">
+  <form class="row-action-form" action="{{ url_for('update_status', application_id=application['id']) }}" method="POST">
     <select name="status">
       {% for status in ["Applied", "Interview", "Offer", "Rejected"] %}
       <option value="{{ status }}" {% if application["status"] == status %}selected{% endif %}>
@@ -96,7 +98,7 @@
 </td>
             <td>{{ application["date_applied"] }}</td>
             <td>
-                <form action="{{ url_for('delete_application', application_id=application['id']) }}" method="POST">
+                <form class="row-action-form" action="{{ url_for('delete_application', application_id=application['id']) }}" method="POST">
                 <button type="submit">Delete</button>
                 </form>
             </td>
@@ -109,5 +111,21 @@
       {% endif %}
     </section>
   </main>
+  <script>
+  document.querySelectorAll(".row-action-form").forEach((form) => {
+    form.addEventListener("submit", () => {
+      sessionStorage.setItem("applicationScrollPosition", window.scrollY);
+    });
+  });
+
+  window.addEventListener("load", () => {
+    const savedPosition = sessionStorage.getItem("applicationScrollPosition");
+
+    if (savedPosition !== null) {
+      window.scrollTo(0, Number(savedPosition));
+      sessionStorage.removeItem("applicationScrollPosition");
+    }
+  });
+</script>
 </body>
 </html>
