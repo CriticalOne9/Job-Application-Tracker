@@ -32,20 +32,47 @@ def initialize_database():
 
 @app.route("/")
 def home():
-    with get_database_connection() as connection:
-        applications = connection.execute(
-            "SELECT * FROM applications ORDER BY id DESC"
-        ).fetchall()
+    search = request.args.get("search", "").strip()
+    selected_status = request.args.get("status", "All")
 
-    interviews = sum(app["status"] == "Interview" for app in applications)
-    offers = sum(app["status"] == "Offer" for app in applications)
+    query = "SELECT * FROM applications"
+    conditions = []
+    parameters = []
+
+    if search:
+        conditions.append("(company LIKE ? OR role LIKE ?)")
+        parameters.extend([f"%{search}%", f"%{search}%"])
+
+    if selected_status in ALLOWED_STATUSES:
+        conditions.append("status = ?")
+        parameters.append(selected_status)
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    query += " ORDER BY id DESC"
+
+    with get_database_connection() as connection:
+        applications = connection.execute(query, parameters).fetchall()
+        total = connection.execute(
+            "SELECT COUNT(*) FROM applications"
+        ).fetchone()[0]
+        interviews = connection.execute(
+            "SELECT COUNT(*) FROM applications WHERE status = 'Interview'"
+        ).fetchone()[0]
+        offers = connection.execute(
+            "SELECT COUNT(*) FROM applications WHERE status = 'Offer'"
+        ).fetchone()[0]
 
     return render_template(
         "index.html",
         applications=applications,
-        total=len(applications),
+        total=total,
         interviews=interviews,
         offers=offers,
+        search=search,
+        selected_status=selected_status,
+        statuses=ALLOWED_STATUSES,
     )
 
 
