@@ -2,7 +2,7 @@ import os
 from functools import wraps
 from dotenv import load_dotenv
 import sqlite3
-from datetime import date,datetime
+from datetime import date,datetime,timedelta
 from flask import Flask, redirect, render_template, request, session, url_for
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -11,6 +11,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.environ["FLASK_SECRET_KEY"]
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 csrf = CSRFProtect(app)
 
 DATABASE = "applications.db"
@@ -249,6 +250,7 @@ def login():
         )
 
     session.clear()
+    session.permanent = True
     session["user_id"] = user["id"]
 
     return redirect(url_for("home"))
@@ -257,7 +259,7 @@ def login():
 @app.post("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("home"))
+    return redirect(url_for("login_page"))
 
 if __name__ == "__main__":
     initialize_database()

@@ -228,3 +228,8 @@ td {
     align-items: stretch;
   }
 }
+.logout-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
