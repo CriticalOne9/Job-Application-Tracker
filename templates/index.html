@@ -8,14 +8,20 @@
 </head>
 <body>
   <main class="container">
-    <h1>Job Application Tracker</h1>
-    <p class="subtitle">Stay organized and follow every opportunity.</p>
-      <div class="logout-container">
-    <form method="POST" action="{{ url_for('logout') }}">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <button type="submit">Logout</button>
-    </form>
-</div>
+
+    <header class="dashboard-header">
+        <div>
+            <h1>Job Application Tracker</h1>
+            <p class="subtitle">Stay organized and follow every opportunity.</p>
+        </div>
+
+        <div class="logout-container">
+            <form method="POST" action="{{ url_for('logout') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit">Logout</button>
+            </form>
+        </div>
+    </header>
 
     <section class="stats">
       <div class="card">
@@ -34,7 +40,12 @@
 
     
     <section class="panel">
-      <h2>Add an application</h2>
+      <div class="panel-heading">
+    <div>
+        <h2>Add an application</h2>
+        <p>Record a new opportunity and start tracking its progress.</p>
+    </div>
+</div>
       <form class="form-grid" action="{{ url_for('add_application') }}" method="POST">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input name="company" placeholder="Company name" required>
@@ -49,32 +60,31 @@
       </form>
     </section>
 
-    <section class="panel" style="margin-top: 24px; margin-bottom: 24px;">
-  <h2>Find applications</h2>
-  <form class="form-grid" action="{{ url_for('home') }}" method="GET">
-    <input
-      type="search"
-      name="search"
-      value="{{ search }}"
-      placeholder="Search company or job title"
-    >
-
-    <select name="status">
-      <option value="All">All statuses</option>
-      {% for status in statuses %}
-      <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>
-        {{ status }}
-      </option>
-      {% endfor %}
-    </select>
-
-    <button type="submit">Filter</button>
-  </form>
-</section>
+    
 
     <section class="panel" style="margin-top: 28px;">
-      <h2>Recent applications</h2>
+      <h2 class="section-title">Recent applications</h2>
+        <div class="filters">
+    <form class="form-grid filter-grid" action="{{ url_for('home') }}" method="GET">
+        <input
+          type="search"
+          name="search"
+          value="{{ search }}"
+          placeholder="Search company or job title"
+        >
 
+        <select name="status">
+          <option value="All">All statuses</option>
+          {% for status in statuses %}
+          <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>
+            {{ status }}
+          </option>
+          {% endfor %}
+        </select>
+
+        <button type="submit">Filter</button>
+      </form>
+        </div>
       {% if applications %}
       <table>
         <thead>
@@ -94,7 +104,7 @@
             <td>
   <form class="row-action-form" action="{{ url_for('update_status', application_id=application['id']) }}" method="POST">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <select name="status">
+    <select name="status" class="status-select">
       {% for status in ["Applied", "Interview", "Offer", "Rejected"] %}
       <option value="{{ status }}" {% if application["status"] == status %}selected{% endif %}>
         {{ status }}
@@ -106,7 +116,7 @@
 </td>
             <td>{{ application["date_applied"] }}</td>
             <td>
-                <form class="row-action-form" action="{{ url_for('delete_application', application_id=application['id']) }}" method="POST">
+                <form class="row-action-form delete-form" action="{{ url_for('delete_application', application_id=application['id']) }}" method="POST">
                   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit">Delete</button>
                 </form>
