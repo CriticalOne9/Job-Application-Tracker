@@ -30,6 +30,7 @@
     <section class="panel">
       <h2>Add an application</h2>
       <form class="form-grid" action="{{ url_for('add_application') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <input name="company" placeholder="Company name" required>
         <input name="role" placeholder="Job title" required>
         <select name="status">
@@ -86,6 +87,7 @@
             <td>{{ application["role"] }}</td>
             <td>
   <form class="row-action-form" action="{{ url_for('update_status', application_id=application['id']) }}" method="POST">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <select name="status">
       {% for status in ["Applied", "Interview", "Offer", "Rejected"] %}
       <option value="{{ status }}" {% if application["status"] == status %}selected{% endif %}>
@@ -99,6 +101,7 @@
             <td>{{ application["date_applied"] }}</td>
             <td>
                 <form class="row-action-form" action="{{ url_for('delete_application', application_id=application['id']) }}" method="POST">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit">Delete</button>
                 </form>
             </td>
