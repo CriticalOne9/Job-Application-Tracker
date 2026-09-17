@@ -3,7 +3,7 @@ from functools import wraps
 from dotenv import load_dotenv
 import sqlite3
 from datetime import date,datetime,timedelta
-from flask import Flask, redirect, render_template, request, session, url_for
+from flask import Flask, redirect, render_template, request, session, url_for,jsonify
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -71,8 +71,11 @@ def initialize_database():
                 "ALTER TABLE applications ADD COLUMN user_id INTEGER"
             )
 
+@app.get("/")
+def landing():
+    return render_template("landing.html")
 
-@app.route("/")
+@app.route("/dashboard")
 @login_required
 def home():
     search = request.args.get("search", "").strip()
@@ -111,7 +114,7 @@ def home():
         ).fetchone()[0]
 
     return render_template(
-        "index.html",
+        "dashboard.html",
         applications=applications,
         total=total,
         interviews=interviews,
@@ -244,14 +247,26 @@ def login():
         ).fetchone()
 
     if user is None or not check_password_hash(user["password_hash"], password):
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return jsonify({
+                "success": False,
+                "error": "Invalid username or password."
+            }), 401
+
         return render_template(
-            "login.html",
-            error="Invalid username or password.",
-        )
+                "landing.html",
+                login_error="Invalid username or password.",
+            )
 
     session.clear()
     session.permanent = True
     session["user_id"] = user["id"]
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return jsonify({
+        "success": True,
+        "redirect": url_for("home")
+    })
 
     return redirect(url_for("home"))
 

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Application Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body>
+
+    <nav class="landing-nav">
+        <div class="landing-brand">
+            Job Application Tracker
+        </div>
+
+        <div class="landing-actions">
+    <button type="button" class="nav-link" onclick="openModal('login-modal')">
+        Login
+    </button>
+
+    <button type="button" class="nav-button" onclick="openModal('register-modal')">
+        Register
+    </button>
+</div>
+    </nav>
+
+    <main class="landing-main">
+    <div class="hero-content">
+        <p class="hero-eyebrow">YOUR JOB SEARCH, ORGANIZED</p>
+
+        <h1>Job Application Tracker</h1>
+
+        <p class="hero-description">
+            Keep every application, interview, and opportunity organized
+            in one place.
+        </p>
+
+        <a href="{{ url_for('register_page') }}" class="hero-button">
+            Get Started
+        </a>
+    </div>
+</main>
+
+      <footer class="site-footer">
+    <div class="footer-content">
+
+      <div class="footer-brand">
+        <h2>Job Application Tracker</h2>
+        <p>Keep your applications organized and your job search on track.</p>
+      </div>
+
+      <div class="footer-column">
+        <h3>Product</h3>
+        <a href="#">Dashboard</a>
+        <a href="#">Applications</a>
+        <a href="#">Features</a>
+      </div>
+
+      <div class="footer-column">
+        <h3>Resources</h3>
+        <a href="#">About</a>
+        <a href="#">Help</a>
+        <a href="#">Privacy</a>
+      </div>
+
+      <div class="footer-column">
+        <h3>Connect</h3>
+        <a href="https://github.com/CriticalOne9/Job-Application-Tracker">GitHub</a>
+        <a href="https://www.linkedin.com/in/uzair-ali--dev/">LinkedIn</a>
+        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=uzairali030406@gmail.com",target="_blank">Email</a>
+      </div>
+
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Job Application Tracker</span>
+      <span>Built with Python & Flask</span>
+    </div>
+  </footer>
+<div id="login-modal" class="modal">
+    <div class="modal-content">
+        <button type="button" class="modal-close" onclick="closeModal('login-modal')">
+            &times;
+        </button>
+
+        <h2>Welcome back</h2>
+        <p class="modal-description">
+            Log in to manage your applications.
+        </p>
+        <p id="login-error" class="modal-error"></p>
+
+        <form id="login-form" action="{{ url_for('login') }}" method="POST" class="modal-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <input
+        name="username"
+        placeholder="Username"
+        required
+    >
+
+    <input
+        name="password"
+        type="password"
+        placeholder="Password"
+        required
+    >
+
+    <button type="submit">Log in</button>
+</form>
+
+<p class="modal-switch">
+    Don't have an account?
+    <button type="button" onclick="switchModal('login-modal', 'register-modal')">
+        Create an account
+    </button>
+</p>
+    </div>
+</div>
+
+
+<div id="register-modal" class="modal">
+    <div class="modal-content">
+        <button type="button" class="modal-close" onclick="closeModal('register-modal')">
+            &times;
+        </button>
+
+        <h2>Create your account</h2>
+        <p>Start organizing your job search.</p>
+
+        <!-- Register form will go here -->
+    </div>
+</div>
+
+
+<script>
+function openModal(id) {
+    document.getElementById(id).classList.add("active");
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.remove("active");
+}
+
+function switchModal(currentId, nextId) {
+    closeModal(currentId);
+    openModal(nextId);
+}
+
+document.getElementById("login-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const form = event.target;
+
+    const response = await fetch(form.action, {
+        method: "POST",
+        headers: {
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: new FormData(form)
+    });
+
+    const data = await response.json();
+
+if (data.success) {
+    window.location.href = data.redirect;
+} else {
+    document.getElementById("login-error").textContent = data.error;
+}
+});
+</script>
+</body>
+</html>
