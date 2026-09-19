@@ -144,11 +144,18 @@
     </div>
 
     <section class="panel analytics-section">
-      <h2>Applications Over Time</h2>
+      <div class="analytics-heading">
+    <h2>Applications Over Time</h2>
 
-      <div class="analytics-chart-container">
-        <canvas id="applicationsOverTimeChart"></canvas>
-      </div>
+    <select id="analyticsSelector">
+        <option value="over-time">Applications Over Time</option>
+        <option value="status">Applications by Status</option>
+    </select>
+</div>
+
+<div class="analytics-chart-container">
+    <canvas id="applicationsOverTimeChart"></canvas>
+</div>
     </section>
   </div>
   <footer class="site-footer">
@@ -220,11 +227,48 @@
 });
 
     const applicationsOverTime = {{ applications_over_time | tojson }};
+    document.getElementById("analyticsSelector").addEventListener("change", function () {
+      analyticsChart.destroy();
+    document.querySelector(".analytics-heading h2").textContent =
+        this.value === "status"
+            ? "Applications by Status"
+            : "Applications Over Time";
+    
+    if (this.value === "status") {
+    analyticsChart = new Chart(document.getElementById("applicationsOverTimeChart"), {
+        type: "bar",
+        data: {
+            labels: ["Not Processed", "Interview", "Offer", "Rejected"],
+            datasets: [{
+                data: {{
+                    [
+                        status_counts["Applied"],
+                        status_counts["Interview"],
+                        status_counts["Offer"],
+                        status_counts["Rejected"]
+                    ] | tojson
+                }},
+                borderWidth: 0,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+});
 
     const applicationDates = Object.keys(applicationsOverTime);
     const applicationCounts = Object.values(applicationsOverTime);
 
-    new Chart(document.getElementById("applicationsOverTimeChart"), {
+    let analyticsChart = new Chart(document.getElementById("applicationsOverTimeChart"), {
       type: "line",
       data: {
         labels: applicationDates,
