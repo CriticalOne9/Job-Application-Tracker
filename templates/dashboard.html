@@ -201,7 +201,10 @@
             status_counts["Offer"],
             status_counts["Rejected"]
           ] | tojson
-        }}
+        }},
+        borderWidth: 0,
+    borderRadius: 4,
+    barThickness: 18
     }]
     },
     options: {
@@ -222,23 +225,33 @@
     const applicationCounts = Object.values(applicationsOverTime);
 
     new Chart(document.getElementById("applicationsOverTimeChart"), {
-        type: "line",
-        data: {
-            labels: applicationDates,
-            datasets: [{
-                data: applicationCounts,
-                tension: 0.3
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
+      type: "line",
+      data: {
+        labels: applicationDates,
+        datasets: [{
+    data: applicationCounts,
+    tension: 0.3,
+    pointRadius: 3,
+    pointHoverRadius: 5,
+    borderWidth: 2
+}]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                return `Applications: ${context.parsed.y}`;
+              }
             }
+          }
         }
+      }
     });
 
     document.querySelectorAll(".row-action-form").forEach((form) => {

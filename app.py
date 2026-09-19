@@ -180,6 +180,22 @@ def home():
 
         for row in rows:
             applications_over_time[row["date_applied"]] = row["count"]
+
+        if applications_over_time:
+            start_date = date.fromisoformat(min(applications_over_time))
+            end_date = date.fromisoformat(max(applications_over_time))
+
+            current_date = start_date
+
+            while current_date <= end_date:
+                date_key = current_date.isoformat()
+
+                if date_key not in applications_over_time:
+                    applications_over_time[date_key] = 0
+
+                current_date += timedelta(days=1)
+
+            applications_over_time = dict(sorted(applications_over_time.items()))
     return render_template(
         "dashboard.html",
         applications=applications,
