@@ -152,6 +152,34 @@ def home():
             (session["user_id"],),
         ).fetchone()["count"]
 
+        status_counts = {}
+
+        for status in ALLOWED_STATUSES:
+            status_counts[status] = connection.execute(
+                f"""
+                SELECT COUNT(*) AS count
+                FROM applications
+                WHERE status = {SQL_PLACEHOLDER}
+                AND user_id = {SQL_PLACEHOLDER}
+                """,
+                (status, session["user_id"]),
+            ).fetchone()["count"]
+
+        applications_over_time = {}
+
+        rows = connection.execute(
+            f"""
+            SELECT date_applied, COUNT(*) AS count
+            FROM applications
+            WHERE user_id = {SQL_PLACEHOLDER}
+            GROUP BY date_applied
+            ORDER BY date_applied
+            """,
+            (session["user_id"],),
+        ).fetchall()
+
+        for row in rows:
+            applications_over_time[row["date_applied"]] = row["count"]
     return render_template(
         "dashboard.html",
         applications=applications,
@@ -161,6 +189,8 @@ def home():
         search=search,
         selected_status=selected_status,
         statuses=ALLOWED_STATUSES,
+        status_counts=status_counts,
+        applications_over_time=applications_over_time,
     )
 
 

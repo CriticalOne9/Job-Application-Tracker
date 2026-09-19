@@ -295,6 +295,31 @@ tbody tr:hover {
     gap: 30px;
 }
 
+.dashboard-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.dashboard-main {
+    min-width: 0;
+}
+
+.dashboard-sidebar {
+    min-width: 0;
+    margin-top: 42px;
+}
+
+.status-analytics {
+    min-height: 360px;
+}
+
+.analytics-section {
+    margin-top: 24px;
+    min-height: 280px;
+}
+
 .logout-container {
     flex-shrink: 0;
 }
@@ -806,4 +831,12 @@ body {
     color: var(--danger) !important;
     font-size: 0.84rem !important;
     font-weight: 600;
+}
+
+.status-chart-container {
+    height: 280px;
+}
+
+.analytics-chart-container {
+    height: 320px;
 }

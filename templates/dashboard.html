@@ -1,136 +1,156 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Job Application Tracker</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
+
 <body>
-  <main class="container">
+  <div class="container">
 
     <header class="dashboard-header">
-        <div>
-            <h1>Job Application Tracker</h1>
-            <p class="subtitle">Stay organized and follow every opportunity.</p>
-        </div>
+      <div>
+        <h1>Job Application Tracker</h1>
+        <p class="subtitle">Stay organized and follow every opportunity.</p>
+      </div>
 
-        <div class="logout-container">
-            <form method="POST" action="{{ url_for('logout') }}">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit">Logout</button>
-            </form>
-        </div>
+      <div class="logout-container">
+        <form method="POST" action="{{ url_for('logout') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit">Logout</button>
+        </form>
+      </div>
     </header>
 
-    <section class="stats">
-      <div class="card">
-        <div class="number">{{ total }}</div>
-        <div class="label">Total applications</div>
-      </div>
-      <div class="card">
-        <div class="number">{{ interviews }}</div>
-        <div class="label">Interviews</div>
-      </div>
-      <div class="card">
-        <div class="number">{{ offers }}</div>
-        <div class="label">Offers</div>
-      </div>
-    </section>
+    <div class="dashboard-layout">
+      <main class="dashboard-main">
+        <section class="stats">
+          <div class="card">
+            <div class="number">{{ total }}</div>
+            <div class="label">Total applications</div>
+          </div>
+          <div class="card">
+            <div class="number">{{ interviews }}</div>
+            <div class="label">Interviews</div>
+          </div>
+          <div class="card">
+            <div class="number">{{ offers }}</div>
+            <div class="label">Offers</div>
+          </div>
+        </section>
 
-    
-    <section class="panel">
-      <div class="panel-heading">
-    <div>
-        <h2>Add an application</h2>
-        <p>Record a new opportunity and start tracking its progress.</p>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <div>
+              <h2>Add an application</h2>
+              <p>Record a new opportunity and start tracking its progress.</p>
+            </div>
+          </div>
+          <form class="form-grid" action="{{ url_for('add_application') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input name="company" placeholder="Company name" required>
+            <input name="role" placeholder="Job title" required>
+            <select name="status">
+              <option>Applied</option>
+              <option>Interview</option>
+              <option>Offer</option>
+              <option>Rejected</option>
+            </select>
+            <button type="submit">Add</button>
+          </form>
+        </section>
+
+
+
+        <section class="panel" style="margin-top: 28px;">
+          <h2 class="section-title">Recent applications</h2>
+          <div class="filters">
+            <form class="form-grid filter-grid" action="{{ url_for('home') }}" method="GET">
+              <input type="search" name="search" value="{{ search }}" placeholder="Search company or job title">
+
+              <select name="status">
+                <option value="All">All statuses</option>
+                {% for status in statuses %}
+                <option value="{{ status }}" {% if selected_status==status %}selected{% endif %}>
+                  {{ status }}
+                </option>
+                {% endfor %}
+              </select>
+
+              <button type="submit">Filter</button>
+            </form>
+          </div>
+          {% if applications %}
+          <table>
+            <thead>
+              <tr>
+                <th>Company</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Date added</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for application in applications %}
+              <tr>
+                <td>{{ application["company"] }}</td>
+                <td>{{ application["role"] }}</td>
+                <td>
+                  <form class="row-action-form"
+                    action="{{ url_for('update_status', application_id=application['id']) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <select name="status" class="status-select">
+                      {% for status in ["Applied", "Interview", "Offer", "Rejected"] %}
+                      <option value="{{ status }}" {% if application["status"]==status %}selected{% endif %}>
+                        {{ status }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                    <button type="submit">Save</button>
+                  </form>
+                </td>
+                <td>{{ application["date_applied"] }}</td>
+                <td>
+                  <form class="row-action-form delete-form"
+                    action="{{ url_for('delete_application', application_id=application['id']) }}" method="POST">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit">Delete</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No applications yet. Add your first one above.</p>
+          {% endif %}
+        </section>
+      </main>
+
+      <aside class="dashboard-sidebar">
+        <section class="panel status-analytics">
+          <h2>Application Status</h2>
+
+          <div class="status-chart-container">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </section>
+      </aside>
     </div>
-</div>
-      <form class="form-grid" action="{{ url_for('add_application') }}" method="POST">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <input name="company" placeholder="Company name" required>
-        <input name="role" placeholder="Job title" required>
-        <select name="status">
-          <option>Applied</option>
-          <option>Interview</option>
-          <option>Offer</option>
-          <option>Rejected</option>
-        </select>
-        <button type="submit">Add</button>
-      </form>
+
+    <section class="panel analytics-section">
+      <h2>Applications Over Time</h2>
+
+      <div class="analytics-chart-container">
+        <canvas id="applicationsOverTimeChart"></canvas>
+      </div>
     </section>
-
-    
-
-    <section class="panel" style="margin-top: 28px;">
-      <h2 class="section-title">Recent applications</h2>
-        <div class="filters">
-    <form class="form-grid filter-grid" action="{{ url_for('home') }}" method="GET">
-        <input
-          type="search"
-          name="search"
-          value="{{ search }}"
-          placeholder="Search company or job title"
-        >
-
-        <select name="status">
-          <option value="All">All statuses</option>
-          {% for status in statuses %}
-          <option value="{{ status }}" {% if selected_status == status %}selected{% endif %}>
-            {{ status }}
-          </option>
-          {% endfor %}
-        </select>
-
-        <button type="submit">Filter</button>
-      </form>
-        </div>
-      {% if applications %}
-      <table>
-        <thead>
-          <tr>
-            <th>Company</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th>Date added</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for application in applications %}
-          <tr>
-            <td>{{ application["company"] }}</td>
-            <td>{{ application["role"] }}</td>
-            <td>
-  <form class="row-action-form" action="{{ url_for('update_status', application_id=application['id']) }}" method="POST">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-    <select name="status" class="status-select">
-      {% for status in ["Applied", "Interview", "Offer", "Rejected"] %}
-      <option value="{{ status }}" {% if application["status"] == status %}selected{% endif %}>
-        {{ status }}
-      </option>
-      {% endfor %}
-    </select>
-    <button type="submit">Save</button>
-  </form>
-</td>
-            <td>{{ application["date_applied"] }}</td>
-            <td>
-                <form class="row-action-form delete-form" action="{{ url_for('delete_application', application_id=application['id']) }}" method="POST">
-                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <button type="submit">Delete</button>
-                </form>
-            </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% else %}
-      <p class="empty">No applications yet. Add your first one above.</p>
-      {% endif %}
-    </section>
-    </main>
-
+  </div>
   <footer class="site-footer">
     <div class="footer-content">
 
@@ -157,7 +177,7 @@
         <h3>Connect</h3>
         <a href="https://github.com/CriticalOne9/Job-Application-Tracker">GitHub</a>
         <a href="https://www.linkedin.com/in/uzair-ali--dev/">LinkedIn</a>
-        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=uzairali030406@gmail.com",target="_blank">Email</a>
+        <a href="https://mail.google.com/mail/?view=cm&fs=1&to=uzairali030406@gmail.com" ,target="_blank">Email</a>
       </div>
 
     </div>
@@ -167,21 +187,75 @@
       <span>Built with Python & Flask</span>
     </div>
   </footer>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-  document.querySelectorAll(".row-action-form").forEach((form) => {
-    form.addEventListener("submit", () => {
-      sessionStorage.setItem("applicationScrollPosition", window.scrollY);
-    });
-  });
-
-  window.addEventListener("load", () => {
-    const savedPosition = sessionStorage.getItem("applicationScrollPosition");
-
-    if (savedPosition !== null) {
-      window.scrollTo(0, Number(savedPosition));
-      sessionStorage.removeItem("applicationScrollPosition");
+    const statusChart = new Chart(document.getElementById("statusChart"), {
+      type: "bar",
+      data: {
+        labels: ["Not Processed", "Interview", "Offer", "Rejected"],
+        datasets: [{
+          data: {{
+          [
+            status_counts["Applied"],
+            status_counts["Interview"],
+            status_counts["Offer"],
+            status_counts["Rejected"]
+          ] | tojson
+        }}
+    }]
+    },
+    options: {
+      indexAxis: "y",
+        responsive: true,
+          maintainAspectRatio: false,
+            plugins: {
+        legend: {
+          display: false
+        }
+      }
     }
-  });
-</script>
+});
+
+    const applicationsOverTime = {{ applications_over_time | tojson }};
+
+    const applicationDates = Object.keys(applicationsOverTime);
+    const applicationCounts = Object.values(applicationsOverTime);
+
+    new Chart(document.getElementById("applicationsOverTimeChart"), {
+        type: "line",
+        data: {
+            labels: applicationDates,
+            datasets: [{
+                data: applicationCounts,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+
+    document.querySelectorAll(".row-action-form").forEach((form) => {
+      form.addEventListener("submit", () => {
+        sessionStorage.setItem("applicationScrollPosition", window.scrollY);
+      });
+    });
+
+    window.addEventListener("load", () => {
+      const savedPosition = sessionStorage.getItem("applicationScrollPosition");
+
+      if (savedPosition !== null) {
+        window.scrollTo(0, Number(savedPosition));
+        sessionStorage.removeItem("applicationScrollPosition");
+      }
+    });
+  </script>
 </body>
+
 </html>
