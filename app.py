@@ -140,17 +140,17 @@ def home():
         total = connection.execute(
             f"SELECT COUNT(*) FROM applications WHERE user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
         interviews = connection.execute(
             f"SELECT COUNT(*) FROM applications WHERE status = 'Interview' AND user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
         offers = connection.execute(
             f"SELECT COUNT(*) FROM applications WHERE status = 'Offer' AND user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
-        ).fetchone()[0]
+        ).fetchone()["count"]
 
     return render_template(
         "dashboard.html",
