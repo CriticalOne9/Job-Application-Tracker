@@ -2,6 +2,9 @@ import os
 from functools import wraps
 from dotenv import load_dotenv
 import sqlite3
+import psycopg
+from psycopg import errors
+from psycopg.rows import dict_row
 from datetime import date,datetime,timedelta
 from flask import Flask, redirect, render_template, request, session, url_for,jsonify
 from flask_wtf.csrf import CSRFProtect
@@ -15,10 +18,15 @@ app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=1)
 csrf = CSRFProtect(app)
 
 DATABASE = "applications.db"
+DATABASE_URL = os.getenv("DATABASE_URL")
+SQL_PLACEHOLDER = "%s" if DATABASE_URL else "?"
 ALLOWED_STATUSES = ("Applied", "Interview", "Offer", "Rejected")
 
 
 def get_database_connection():
+    if DATABASE_URL:
+        return psycopg.connect(DATABASE_URL, row_factory=dict_row)
+
     connection = sqlite3.connect(DATABASE)
     connection.row_factory = sqlite3.Row
     return connection
@@ -35,41 +43,68 @@ def login_required(view):
 
 def initialize_database():
     with get_database_connection() as connection:
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS applications (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                company TEXT NOT NULL,
-                role TEXT NOT NULL,
-                status TEXT NOT NULL,
-                date_applied TEXT NOT NULL,
-                user_id INTEGER
-            )
-            """
-        )
-
-        connection.execute(
-            """
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password_hash TEXT NOT NULL,
-                created_at TEXT NOT NULL
-            )
-            """
-        )
-
-        application_columns = {
-            row["name"]
-            for row in connection.execute(
-                "PRAGMA table_info(applications)"
-            ).fetchall()
-        }
-
-        if "user_id" not in application_columns:
+        if DATABASE_URL:
             connection.execute(
-                "ALTER TABLE applications ADD COLUMN user_id INTEGER"
+                """
+                CREATE TABLE IF NOT EXISTS applications (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    company TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    date_applied TEXT NOT NULL,
+                    user_id INTEGER
+                )
+                """
             )
+        else:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS applications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    company TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    date_applied TEXT NOT NULL,
+                    user_id INTEGER
+                )
+                """
+            )
+
+        if DATABASE_URL:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+        else:
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT NOT NULL UNIQUE,
+                    password_hash TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                )
+                """
+            )
+
+        if not DATABASE_URL:
+            application_columns = {
+                row["name"]
+                for row in connection.execute(
+                    "PRAGMA table_info(applications)"
+                ).fetchall()
+            }
+
+            if "user_id" not in application_columns:
+                connection.execute(
+                    "ALTER TABLE applications ADD COLUMN user_id INTEGER"
+                )
 
 @app.get("/")
 def landing():
@@ -82,15 +117,17 @@ def home():
     selected_status = request.args.get("status", "All")
 
     query = "SELECT * FROM applications"
-    conditions = ["user_id = ?"]
+    conditions = [f"user_id = {SQL_PLACEHOLDER}"]
     parameters = [session["user_id"]]
 
     if search:
-        conditions.append("(company LIKE ? OR role LIKE ?)")
+        conditions.append(
+            f"(company LIKE {SQL_PLACEHOLDER} OR role LIKE {SQL_PLACEHOLDER})"
+        )
         parameters.extend([f"%{search}%", f"%{search}%"])
 
     if selected_status in ALLOWED_STATUSES:
-        conditions.append("status = ?")
+        conditions.append(f"status = {SQL_PLACEHOLDER}")
         parameters.append(selected_status)
 
     if conditions:
@@ -101,16 +138,18 @@ def home():
     with get_database_connection() as connection:
         applications = connection.execute(query, parameters).fetchall()
         total = connection.execute(
-            "SELECT COUNT(*) FROM applications WHERE user_id = ?",
+            f"SELECT COUNT(*) FROM applications WHERE user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
         ).fetchone()[0]
+
         interviews = connection.execute(
-            "SELECT COUNT(*) FROM applications WHERE status = 'Interview' AND user_id = ?",
+            f"SELECT COUNT(*) FROM applications WHERE status = 'Interview' AND user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
         ).fetchone()[0]
+
         offers = connection.execute(
-            "SELECT COUNT(*) FROM applications WHERE status = 'Offer' AND user_id = ?",
-        (session["user_id"],),
+            f"SELECT COUNT(*) FROM applications WHERE status = 'Offer' AND user_id = {SQL_PLACEHOLDER}",
+            (session["user_id"],),
         ).fetchone()[0]
 
     return render_template(
@@ -138,7 +177,7 @@ def add_application():
 
     with get_database_connection() as connection:
         connection.execute(
-            """
+            f"""
             INSERT INTO applications (
                 company,
                 role,
@@ -146,7 +185,7 @@ def add_application():
                 date_applied,
                 user_id
             )
-            VALUES (?, ?, ?, ?, ?)
+            VALUES ({SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER})
             """,
             (
                 company,
@@ -167,7 +206,7 @@ def update_status(application_id):
     if status in ALLOWED_STATUSES:
         with get_database_connection() as connection:
             connection.execute(
-                "UPDATE applications SET status = ? WHERE id = ? AND user_id = ?",
+                f"UPDATE applications SET status = {SQL_PLACEHOLDER} WHERE id = {SQL_PLACEHOLDER} AND user_id = {SQL_PLACEHOLDER}",
                 (status, application_id, session["user_id"]),
             )
 
@@ -178,7 +217,7 @@ def update_status(application_id):
 def delete_application(application_id):
     with get_database_connection() as connection:
         connection.execute(
-            "DELETE FROM applications WHERE id = ? AND user_id = ?",
+            f"DELETE FROM applications WHERE id = {SQL_PLACEHOLDER} AND user_id = {SQL_PLACEHOLDER}",
             (application_id, session["user_id"]),
         )
 
@@ -209,9 +248,10 @@ def register():
     try:
         with get_database_connection() as connection:
             cursor = connection.execute(
-                """
+                f"""
                 INSERT INTO users (username, password_hash, created_at)
-                VALUES (?, ?, ?)
+                VALUES ({SQL_PLACEHOLDER}, {SQL_PLACEHOLDER}, {SQL_PLACEHOLDER})
+                RETURNING id
                 """,
                 (
                     username,
@@ -219,14 +259,15 @@ def register():
                     datetime.now().isoformat(timespec="seconds"),
                 ),
             )
-    except sqlite3.IntegrityError:
+            user_id = cursor.fetchone()["id"]
+    except (sqlite3.IntegrityError, errors.UniqueViolation):
         return render_template(
             "register.html",
             error="An account with that username already exists.",
         )
 
     session.clear()
-    session["user_id"] = cursor.lastrowid
+    session["user_id"] = user_id
 
     return redirect(url_for("home"))
 
@@ -242,7 +283,7 @@ def login():
 
     with get_database_connection() as connection:
         user = connection.execute(
-            "SELECT * FROM users WHERE username = ?",
+            f"SELECT * FROM users WHERE username = {SQL_PLACEHOLDER}",
             (username,),
         ).fetchone()
 
@@ -276,6 +317,6 @@ def logout():
     session.clear()
     return redirect(url_for("login_page"))
 
+initialize_database()
 if __name__ == "__main__":
-    initialize_database()
     app.run(debug=True)
