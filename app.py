@@ -35,7 +35,7 @@ def login_required(view):
     @wraps(view)
     def wrapped_view(*args, **kwargs):
         if "user_id" not in session:
-            return redirect(url_for("login_page"))
+            return redirect(url_for("landing"))
 
         return view(*args, **kwargs)
 
@@ -138,17 +138,17 @@ def home():
     with get_database_connection() as connection:
         applications = connection.execute(query, parameters).fetchall()
         total = connection.execute(
-            f"SELECT COUNT(*) FROM applications WHERE user_id = {SQL_PLACEHOLDER}",
+            f"SELECT COUNT(*) AS count FROM applications WHERE user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
         ).fetchone()["count"]
 
         interviews = connection.execute(
-            f"SELECT COUNT(*) FROM applications WHERE status = 'Interview' AND user_id = {SQL_PLACEHOLDER}",
+            f"SELECT COUNT(*) AS count FROM applications WHERE status = 'Interview' AND user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
         ).fetchone()["count"]
 
         offers = connection.execute(
-            f"SELECT COUNT(*) FROM applications WHERE status = 'Offer' AND user_id = {SQL_PLACEHOLDER}",
+            f"SELECT COUNT(*) AS count FROM applications WHERE status = 'Offer' AND user_id = {SQL_PLACEHOLDER}",
             (session["user_id"],),
         ).fetchone()["count"]
 
@@ -223,27 +223,22 @@ def delete_application(application_id):
 
     return redirect(url_for("home"))
 
-@app.get("/register")
-def register_page():
-    return render_template("register.html")
-
-
 @app.post("/register")
 def register():
     username = request.form["username"].strip()
     password = request.form["password"]
 
     if not username:
-        return render_template(
-            "register.html",
-            error="Please enter a username.",
-        )
+        return jsonify({
+            "success": False,
+            "error": "Please enter a username."
+        }), 400
 
     if len(password) < 8:
-        return render_template(
-            "register.html",
-            error="Your password must have at least 8 characters.",
-        )
+        return jsonify({
+            "success": False,
+            "error": "Your password must have at least 8 characters."
+        }), 400
 
     try:
         with get_database_connection() as connection:
@@ -261,20 +256,18 @@ def register():
             )
             user_id = cursor.fetchone()["id"]
     except (sqlite3.IntegrityError, errors.UniqueViolation):
-        return render_template(
-            "register.html",
-            error="An account with that username already exists.",
-        )
+        return jsonify({
+            "success": False,
+            "error": "An account with that username already exists."
+        }), 400
 
     session.clear()
     session["user_id"] = user_id
 
-    return redirect(url_for("home"))
-
-@app.get("/login")
-def login_page():
-    return render_template("login.html")
-
+    return jsonify({
+        "success": True,
+        "redirect": url_for("home")
+    })
 
 @app.post("/login")
 def login():
@@ -315,7 +308,7 @@ def login():
 @app.post("/logout")
 def logout():
     session.clear()
-    return redirect(url_for("login_page"))
+    return redirect(url_for("landing"))
 
 initialize_database()
 if __name__ == "__main__":

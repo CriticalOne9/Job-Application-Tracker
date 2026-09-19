@@ -36,9 +36,9 @@
             in one place.
         </p>
 
-        <a href="{{ url_for('register_page') }}" class="hero-button">
+        <button type="button" class="hero-button" onclick="openModal('register-modal')">
             Get Started
-        </a>
+        </button>
     </div>
 </main>
 
@@ -128,7 +128,34 @@
         <h2>Create your account</h2>
         <p>Start organizing your job search.</p>
 
-        <!-- Register form will go here -->
+        <p id="register-error" class="modal-error"></p>
+
+<form id="register-form" action="{{ url_for('register') }}" method="POST" class="modal-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+    <input
+        name="username"
+        placeholder="Username"
+        required
+    >
+
+    <input
+        name="password"
+        type="password"
+        placeholder="Password"
+        required
+        minlength="8"
+    >
+
+    <button type="submit">Create account</button>
+</form>
+
+<p class="modal-switch">
+    Already have an account?
+    <button type="button" onclick="switchModal('register-modal', 'login-modal')">
+        Log in
+    </button>
+</p>
     </div>
 </div>
 
@@ -146,6 +173,28 @@ function switchModal(currentId, nextId) {
     closeModal(currentId);
     openModal(nextId);
 }
+
+document.getElementById("register-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const form = event.target;
+
+    const response = await fetch(form.action, {
+        method: "POST",
+        headers: {
+            "X-Requested-With": "XMLHttpRequest"
+        },
+        body: new FormData(form)
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+        window.location.href = data.redirect;
+    } else {
+        document.getElementById("register-error").textContent = data.error;
+    }
+});
 
 document.getElementById("login-form").addEventListener("submit", async (event) => {
     event.preventDefault();
